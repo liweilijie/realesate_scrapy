@@ -10,7 +10,7 @@ def push_to_redis():
 
     # 构造要推送的数据（将其转换为 JSON 格式字符串）
     data = {
-        "url": "https://www.homely.com.au/homes/324-20-convention-centre-place-southbank-vic/12035119",
+        "url": "https://www.homely.com.au/homes/24-26-darling-street-east-melbourne-vic-3002/10486605",
         "meta": {
             "job-id": "123xsd",
             "start-date": "dd/mm/yy",

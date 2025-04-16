@@ -122,7 +122,10 @@ class HomelySpider(RedisSpider):
         city = header_sel.xpath('.//span[@class="inline"]/text()').get()
         full_address = f"{address.strip()} {city.strip()}" if address and city else None
 
-        price = header_sel.xpath('.//h2/text()').get()
+        # 提取价格字符串
+        price_text = header_sel.xpath('.//section[@aria-label="Summary"]//h2/text()').get()
+        lower_price, upper_price = self.parse_price(price_text)
+
         # 提取卧室、浴室、车位信息，先获取对应的文本，再转为整数
         bedrooms_str = header_sel.xpath('//li[span[@aria-label="Bed"]]/text()[normalize-space()]').get()
         bathrooms_str = header_sel.xpath('//li[span[@aria-label="Bath"]]/text()[normalize-space()]').get()
@@ -262,7 +265,9 @@ class HomelySpider(RedisSpider):
             "suburb": city,
             "state": city, # TODO:
             "postcode": "3021",
-            "price": price,
+            "price_text": price_text,
+            "lower_price": lower_price if lower_price else 0,
+            "upper_price": upper_price if upper_price else 0,
             "bedrooms": bedrooms,
             "bathrooms": bathrooms,
             "car_spaces": car_spaces,
@@ -385,3 +390,89 @@ class HomelySpider(RedisSpider):
             return match.group(1)
         return None
 
+    def parse_price(self, price_text):
+        """
+        解析价格字符串，返回 (price_low, price_high) 元组。
+
+        支持的价格样式包括：
+          1. 区间价格，使用“-”作为分隔符：
+             "$1,460,000 - $1,600,000"
+          2. 区间价格，使用 "to" 作为分隔符：
+             "$770,000 to $820,000"
+          3. 单一价格（只有一个数值）：
+             "$249,500"
+          4. 带有状态前缀（例如“For Sale - $1,799,000”）：
+             "For Sale - $1,799,000"
+          5. 带有状态前缀，但无连接符：
+             "For Sale $1,800,000"
+          6. 带有额外描述和区间的：
+             "Expressions of Interest | $3,900,000 - $4,290,000"
+
+        对于单一价格，将 lower 与 upper 都设为相同数值；对于区间价格，
+        将两个数字分别赋值给 price_low 和 price_high。
+
+        测试：
+            # 示例测试各个价格样式
+            examples = [
+                "$1,460,000 - $1,600,000",  # 区间价格，用 - 分隔
+                "$770,000 to $820,000",  # 区间价格，用 "to" 分隔
+                "$249,500",  # 单一价格
+                "For Sale - $1,799,000",  # 带状态前缀和 - 的单一价格
+                "For Sale $1,800,000",  # 带状态前缀（无连接符）的单一价格
+                "Expressions of Interest | $3,900,000 - $4,290,000"  # 带描述和区间价格
+            ]
+
+            for example in examples:
+                low, high = parse_price(example)
+                print(f"原始字符串: {example}\n解析结果: price_low={low}, price_high={high}\n")
+        """
+
+
+        if not price_text:
+            return None, None
+
+        # 去除首尾空格
+        price_text = price_text.strip()
+
+        # 如果有额外的描述信息，例如：
+        #   "For Sale - $1,799,000" 或 "Expressions of Interest | $3,900,000 - $4,290,000"
+        # 则去除描述，保留美元符号开始的部分
+        # 这里查找第一个 "$" 出现的位置，从该位置截取子串
+        dollar_index = price_text.find('$')
+        if dollar_index != -1:
+            price_text = price_text[dollar_index:]
+
+        # 注：此时 price_text 可能是以下格式之一：
+        #   "$1,460,000 - $1,600,000"
+        #   "$770,000 to $820,000"
+        #   "$249,500"
+        #   "$1,799,000"
+        #   "$1,800,000"
+        #   "$3,900,000 - $4,290,000"
+
+        # 优先尝试匹配价格区间，支持 "-" 或 "to" 作为分隔符
+        range_pattern = re.compile(r'\$?([\d,]+)\s*(?:-|to)\s*\$?([\d,]+)', re.IGNORECASE)
+        range_match = range_pattern.search(price_text)
+        if range_match:
+            try:
+                lower_price = int(range_match.group(1).replace(',', '').strip())
+                upper_price = int(range_match.group(2).replace(',', '').strip())
+                return lower_price, upper_price
+            except ValueError as e:
+                print("价格转换错误:", e)
+                return None, None
+
+        # 如果未匹配到区间格式，则尝试匹配单一价格格式
+        single_pattern = re.compile(r'\$([\d,]+)')
+        single_match = single_pattern.search(price_text)
+        if single_match:
+            try:
+                price = int(single_match.group(1).replace(',', '').strip())
+                # 单一价格，下限和上限均为相同数值
+                return price, price
+            except ValueError as e:
+                print("价格转换错误:", e)
+                return None, None
+
+        # 若上述均不匹配，则返回 (None, None)
+        return None, None

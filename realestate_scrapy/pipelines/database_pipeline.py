@@ -71,7 +71,9 @@ class DBRealEstatePipeline:
                 suburb=item.get('suburb'),
                 state=item.get('state'),
                 postcode=item.get('postcode'),
-                price=item.get('price'),
+                price_text=item.get('price_text'),
+                lower_price=item.get('lower_price'),
+                upper_price=item.get('upper_price'),
                 property_type=item.get('property_type'),
                 bedrooms=item.get('bedrooms'),
                 bathrooms=item.get('bathrooms'),
@@ -102,7 +104,9 @@ class DBRealEstatePipeline:
             listing.suburb = item.get('suburb') or listing.suburb
             listing.state = item.get('state') or listing.state
             listing.postcode = item.get('postcode') or listing.postcode
-            listing.price = item.get('price') or listing.price
+            listing.price_text = item.get('price_text') or listing.price_text
+            listing.lower_price = item.get('lower_price') or listing.lower_price
+            listing.upper_price = item.get('upper_price') or listing.upper_price
             listing.property_type = item.get('property_type') or listing.property_type
             listing.bedrooms = item.get('bedrooms') or listing.bedrooms
             listing.bathrooms = item.get('bathrooms') or listing.bathrooms

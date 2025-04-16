@@ -41,7 +41,12 @@ class HomeListing(Base):
     suburb = Column(String(255), nullable=True, comment="所属郊区")
     state = Column(String(50), nullable=True, comment="州/地区")
     postcode = Column(String(10), nullable=True, comment="邮政编码")
-    price = Column(String(50), nullable=True, comment="价格信息")
+
+    # 价格
+    price_text = Column(String(50), nullable=True, comment="价格文本信息")
+    lower_price = Column(Integer, nullable=True, comment="最低价格")
+    upper_price = Column(Integer, nullable=True, comment="最高价格")
+
     property_type = Column(String(50), nullable=True, comment="房产类型")
     bedrooms = Column(Integer, nullable=True, comment="卧室数量")
     bathrooms = Column(Integer, nullable=True, comment="浴室数量")

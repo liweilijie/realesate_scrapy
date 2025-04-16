@@ -18,7 +18,10 @@ class CombinedRealEstateItem(scrapy.Item):
     postcode = scrapy.Field()       # 邮政编码
 
     # 房屋属性
-    price = scrapy.Field()          # 价格信息（字符串格式）
+    price_text = scrapy.Field()          # 价格信息（字符串格式）
+    lower_price = scrapy.Field()          # 最低价格信息
+    upper_price = scrapy.Field()          # 最高价格信息
+
     property_type = scrapy.Field()  # 房产类型，如公寓、别墅等
     bedrooms = scrapy.Field()       # 卧室数量
     bathrooms = scrapy.Field()      # 浴室数量
