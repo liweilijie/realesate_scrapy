@@ -121,6 +121,7 @@ class HomelySpider(RedisSpider):
         address = header_sel.xpath('.//h1/text()').get()
         city = header_sel.xpath('.//span[@class="inline"]/text()').get()
         full_address = f"{address.strip()} {city.strip()}" if address and city else None
+        postcode = self.parse_postcode(city)
 
         # 提取价格字符串
         price_text = header_sel.xpath('.//section[@aria-label="Summary"]//h2/text()').get()
@@ -264,7 +265,7 @@ class HomelySpider(RedisSpider):
             "title": full_address,
             "suburb": city,
             "state": city, # TODO:
-            "postcode": "3021",
+            "postcode": postcode,
             "price_text": price_text,
             "lower_price": lower_price if lower_price else 0,
             "upper_price": upper_price if upper_price else 0,
@@ -476,3 +477,26 @@ class HomelySpider(RedisSpider):
 
         # 若上述均不匹配，则返回 (None, None)
         return None, None
+
+    def parse_postcode(self, address_text):
+        """
+        解析地址中的 postcode（邮政编码）。
+
+        支持格式包括：
+          1. 地址文本中可能包含城市、州以及邮政编码，例如 "Abbotsford VIC 3067"
+          2. 邮政编码通常为 4 位数字（如 3067）
+
+        参数:
+          address_text (str): 从网页中提取的地址详情，例如 "Abbotsford VIC 3067"
+
+        返回:
+          str 或 None: 如果能匹配到 4 位数字，则返回该邮政编码；否则返回 None。
+        """
+        if not address_text:
+            return None
+
+        # 使用正则表达式匹配 4 位数字，\b 用于确保匹配边界
+        match = re.search(r'\b\d{4}\b', address_text)
+        if match:
+            return match.group()
+        return None
